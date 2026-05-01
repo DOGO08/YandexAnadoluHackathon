@@ -1,0 +1,1876 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MADsight — AI Urban Mobility</title>
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ── THEME VARIABLES (DEFAULT: DARK) ── */
+        :root {
+            --bg-deep: #020714;
+            --bg-mid: #060d1f;
+            --bg-panel: rgba(8, 18, 42, 0.85);
+            --glass: rgba(255,255,255,0.04);
+            --glass-border: rgba(100,180,255,0.12);
+            --neon-blue: #00d4ff;
+            --neon-purple: #7b2fff;
+            --neon-cyan: #00fff5;
+            --neon-green: #00ff88;
+            --neon-orange: #ff8c00;
+            --neon-red: #ff3060;
+            --text-primary: #e8f4ff;
+            --text-secondary: #7aa8cc;
+            --text-muted: #3a5a7a;
+            --map-bg: linear-gradient(rgba(0,20,50,0.8), rgba(2,7,20,0.9));
+            --map-road: rgba(30,80,140,0.5);
+            --map-overlay: linear-gradient(rgba(6,13,31,0.9), transparent);
+            --map-label-shadow: 0 0 8px rgba(0,212,255,0.5);
+            --savings-bg: rgba(8, 18, 42, 0.75);
+            --font-main: 'Exo 2', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-emoji: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+        }
+
+        /* ── LIGHT MODE VARIABLES ── */
+        [data-theme="light"] {
+            --bg-deep: #f1f5f9;
+            --bg-mid: #e2e8f0;
+            --bg-panel: rgba(255, 255, 255, 0.95);
+            --glass: #ffffff;
+            --glass-border: #cbd5e1;
+            --neon-blue: #2563eb;
+            --neon-purple: #7c3aed;
+            --neon-cyan: #0891b2;
+            --neon-green: #16a34a;
+            --neon-orange: #ea580c;
+            --neon-red: #e11d48;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --map-bg: linear-gradient(#f8fafc, #f1f5f9);
+            --map-road: #cbd5e1;
+            --map-overlay: linear-gradient(rgba(255,255,255,0.9), transparent);
+            --map-label-shadow: 0 0 3px #fff, 0 0 5px #fff;
+            --savings-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 120px;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+
+            body::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background-image: linear-gradient(rgba(128,128,128,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.05) 1px, transparent 1px);
+                background-size: 40px 40px;
+                animation: gridDrift 20s linear infinite;
+                pointer-events: none;
+                z-index: 0;
+            }
+
+        @keyframes gridDrift {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(40px);
+            }
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -200px;
+            left: -100px;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(123,47,255,0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 8s ease-in-out infinite;
+        }
+
+        @keyframes orbFloat {
+            0%, 100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(40px, 60px);
+            }
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 0 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 0 20px rgba(0,212,255,0.25);
+            animation: iconPulse 3s ease-in-out infinite;
+            color: #fff;
+        }
+
+        @keyframes iconPulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(0,212,255,0.25);
+            }
+
+            50% {
+                box-shadow: 0 0 35px rgba(123,47,255,0.4), 0 0 60px rgba(0,212,255,0.15);
+            }
+        }
+
+        .brand-text h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+        }
+
+        .brand-text p {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-family: var(--font-mono);
+            margin-top: 2px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--neon-green);
+            animation: liveBlink 1.2s ease-in-out infinite;
+        }
+
+        @keyframes liveBlink {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .theme-toggle {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            color: var(--text-primary);
+            font-family: var(--font-emoji);
+            margin-left: 6px;
+        }
+
+            .theme-toggle:hover {
+                transform: scale(1.1);
+                box-shadow: 0 0 10px var(--glass-border);
+            }
+
+        .header-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
+        }
+
+        /* ── CHIP DESIGNS ── */
+        .meta-chip {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            padding: 5px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-emoji);
+            transition: all 0.4s ease;
+        }
+
+        .time-chip {
+            background: rgba(0, 255, 245, 0.1) !important;
+            border-color: var(--neon-cyan) !important;
+            color: var(--neon-cyan) !important;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px rgba(0, 255, 245, 0.15);
+        }
+
+        [data-theme="light"] .time-chip {
+            background: rgba(8, 145, 178, 0.1) !important;
+            border-color: var(--neon-cyan) !important;
+            color: var(--neon-cyan) !important;
+            box-shadow: none;
+        }
+
+        .transit-chip {
+            background: rgba(255, 140, 0, 0.1) !important;
+            border-color: var(--neon-orange) !important;
+            color: var(--neon-orange) !important;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px rgba(255, 140, 0, 0.15);
+        }
+
+        [data-theme="light"] .transit-chip {
+            background: rgba(234, 88, 12, 0.1) !important;
+            border-color: var(--neon-orange) !important;
+            color: var(--neon-orange) !important;
+            box-shadow: none;
+        }
+
+        .weather-chip {
+            background: rgba(0, 212, 255, 0.1) !important;
+            border-color: var(--neon-blue) !important;
+            color: var(--neon-blue) !important;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.15);
+        }
+
+        [data-theme="light"] .weather-chip {
+            background: rgba(37, 99, 235, 0.1) !important;
+            border-color: var(--neon-blue) !important;
+            color: var(--neon-blue) !important;
+            box-shadow: none;
+        }
+
+        .glass-panel {
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s, box-shadow 0.3s, background-color 0.4s ease;
+        }
+
+            .glass-panel::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+                opacity: 0.4;
+            }
+
+        .section-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .section-title::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: linear-gradient(90deg, var(--glass-border), transparent);
+            }
+
+        .stops-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .stop-btn {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-main);
+            color: var(--text-secondary);
+        }
+
+            .stop-btn:hover {
+                border-color: var(--neon-blue);
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0,212,255,0.08);
+            }
+
+            .stop-btn.active {
+                background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(123,47,255,0.05));
+                border-color: var(--neon-blue);
+                box-shadow: 0 0 20px rgba(0,212,255,0.15), inset 0 0 15px rgba(0,212,255,0.05);
+                transform: translateY(-2px);
+            }
+
+            .stop-btn .stop-icon {
+                font-size: 20px;
+                font-family: var(--font-emoji);
+            }
+
+            .stop-btn .stop-name {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--text-primary);
+                line-height: 1.2;
+            }
+
+        .cta-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+            border: none;
+            border-radius: 14px;
+            padding: 16px;
+            font-family: var(--font-main);
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: #fff;
+            cursor: pointer;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: 0 0 30px rgba(0,212,255,0.25);
+            margin-bottom: 12px;
+        }
+
+            .cta-btn::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                left: -60%;
+                width: 40%;
+                height: 200%;
+                background: rgba(255,255,255,0.15);
+                transform: skewX(-20deg);
+                transition: left 0.5s;
+            }
+
+            .cta-btn:hover::before {
+                left: 130%;
+            }
+
+            .cta-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 0 50px rgba(0,212,255,0.3);
+            }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        .stat-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 14px 10px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: background-color 0.4s ease, border-color 0.4s ease;
+        }
+
+            .stat-card::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+                opacity: 0.5;
+            }
+
+        .stat-value {
+            font-size: 26px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            line-height: 1;
+            margin-bottom: 4px;
+            transition: color 0.4s ease;
+        }
+
+            .stat-value.blue {
+                color: var(--neon-blue);
+            }
+
+            .stat-value.orange {
+                color: var(--neon-orange);
+            }
+
+            .stat-value.green {
+                color: var(--neon-green);
+            }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            font-family: var(--font-mono);
+        }
+
+        .alert {
+            display: none;
+            background: rgba(255,140,0,0.08);
+            border: 1px solid rgba(255,140,0,0.25);
+            border-radius: 12px;
+            padding: 12px 14px;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--neon-orange);
+            line-height: 1.5;
+            margin-bottom: 12px;
+            transition: background-color 0.4s ease;
+        }
+
+        .alert-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+            margin-top: 1px;
+            font-family: var(--font-emoji);
+        }
+
+        /* ── CO2 CARD CSS ── */
+        .co2-card {
+            background: linear-gradient(135deg, rgba(0,255,136,0.06), rgba(0,212,255,0.04));
+            border: 1px solid rgba(0,255,136,0.2);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            transition: background-color 0.4s ease;
+        }
+
+        .co2-icon {
+            font-size: 24px;
+            font-family: var(--font-emoji);
+        }
+
+        .co2-value {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--neon-green);
+            font-family: var(--font-mono);
+            text-shadow: 0 0 12px rgba(0,255,136,0.2);
+        }
+
+        .co2-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .map-container {
+            background: var(--bg-panel);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            height: 220px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 12px;
+            transition: background-color 0.4s ease;
+        }
+
+        .map-bg {
+            position: absolute;
+            inset: 0;
+            background: var(--map-bg);
+            transition: background 0.4s ease;
+        }
+
+        .road {
+            position: absolute;
+            background: var(--map-road);
+            border-radius: 2px;
+            transition: background 0.4s ease;
+        }
+
+        .traffic-flow {
+            position: absolute;
+            height: 3px;
+            border-radius: 3px;
+            animation: flowRight 3s linear infinite;
+            opacity: 0.8;
+            transition: background 0.4s ease;
+        }
+
+        @keyframes flowRight {
+            0% {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateX(500px);
+                opacity: 0;
+            }
+        }
+
+        .traffic-flow.flow-v {
+            width: 3px;
+            height: 30px;
+            animation: flowDown 2.5s linear infinite;
+        }
+
+        @keyframes flowDown {
+            0% {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(250px);
+                opacity: 0;
+            }
+        }
+
+        .map-node {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .map-node-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--map-node);
+            box-shadow: 0 0 10px var(--map-node);
+            animation: nodePulse 2s ease-in-out infinite;
+            transition: all 0.4s ease;
+        }
+
+        .map-node.active .map-node-dot {
+            background: var(--neon-cyan);
+            box-shadow: 0 0 20px var(--neon-cyan);
+            animation: nodePulseActive 1.5s ease-in-out infinite;
+            border: 2px solid var(--bg-panel);
+        }
+
+        @keyframes nodePulse {
+            0%, 100% {
+                box-shadow: 0 0 6px var(--neon-blue);
+            }
+
+            50% {
+                box-shadow: 0 0 16px var(--neon-blue);
+            }
+        }
+
+        @keyframes nodePulseActive {
+            0%, 100% {
+                box-shadow: 0 0 12px var(--neon-cyan), 0 0 30px rgba(0,255,245,0.3);
+                transform: scale(1);
+            }
+
+            50% {
+                box-shadow: 0 0 25px var(--neon-cyan), 0 0 50px rgba(0,255,245,0.4);
+                transform: scale(1.3);
+            }
+        }
+
+        .map-label {
+            position: absolute;
+            font-size: 9px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--map-label);
+            white-space: nowrap;
+            text-shadow: var(--map-label-shadow);
+            transition: color 0.4s ease;
+        }
+
+        .map-overlay-top {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--map-overlay);
+            transition: background 0.4s ease;
+        }
+
+        .map-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--neon-cyan);
+            font-family: var(--font-emoji);
+        }
+
+        .map-badge {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            background: rgba(0,255,136,0.12);
+            border: 1px solid rgba(0,255,136,0.25);
+            padding: 3px 8px;
+            border-radius: 20px;
+            color: var(--neon-green);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 700;
+        }
+
+        .route-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 10px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+            .route-card:hover {
+                border-color: var(--neon-blue);
+                background: rgba(0,212,255,0.04);
+                transform: translateX(3px);
+            }
+
+            .route-card.best {
+                border-color: var(--neon-blue);
+                background: rgba(0,212,255,0.05);
+            }
+
+                .route-card.best::before {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    background: linear-gradient(180deg, var(--neon-blue), var(--neon-purple));
+                    border-radius: 3px 0 0 3px;
+                }
+
+        .route-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .route-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .route-badge {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-family: var(--font-emoji);
+        }
+
+            .route-badge.best-badge {
+                background: rgba(0,212,255,0.12);
+                border: 1px solid rgba(0,212,255,0.3);
+                color: var(--neon-blue);
+            }
+
+        .route-stats {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 13px;
+            font-family: var(--font-mono);
+            margin-bottom: 10px;
+        }
+
+        .route-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-family: var(--font-emoji);
+        }
+
+            .route-stat .label {
+                color: var(--text-muted);
+                font-size: 11px;
+            }
+
+            .route-stat .val {
+                font-weight: 600;
+            }
+
+                .route-stat .val.blue {
+                    color: var(--neon-blue);
+                }
+
+                .route-stat .val.orange {
+                    color: var(--neon-orange);
+                }
+
+                .route-stat .val.purple {
+                    color: #aa80ff;
+                }
+
+        .progress-bar {
+            height: 5px;
+            background: rgba(128,128,128,0.15);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            position: relative;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+            .progress-fill::after {
+                content: '';
+                position: absolute;
+                right: 0;
+                top: -2px;
+                width: 10px;
+                height: 9px;
+                border-radius: 50%;
+                background: #ffffff;
+                filter: brightness(1.5);
+                box-shadow: 0 0 10px currentColor;
+                opacity: 0.8;
+            }
+
+        .route-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .whatif-panel {
+            background: linear-gradient(135deg, rgba(123,47,255,0.08), rgba(0,212,255,0.05));
+            border: 1px solid rgba(123,47,255,0.25);
+            border-radius: 16px;
+            padding: 18px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.4s ease;
+        }
+
+            .whatif-panel::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, var(--neon-purple), var(--neon-blue), transparent);
+                opacity: 0.5;
+            }
+
+        .whatif-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .whatif-title {
+            font-size: 15px;
+            font-weight: 800;
+            background: linear-gradient(90deg, #aa80ff, var(--neon-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-emoji);
+        }
+
+        .ai-badge {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            background: rgba(123,47,255,0.2);
+            border: 1px solid rgba(123,47,255,0.4);
+            color: #bb99ff;
+            padding: 3px 8px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+        }
+
+        .ai-dot {
+            width: 6px;
+            height: 6px;
+            background: #aa80ff;
+            border-radius: 50%;
+            animation: liveBlink 1.5s ease-in-out infinite;
+        }
+
+        .slider-section {
+            margin-bottom: 16px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .slider-label-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .slider-value-display {
+            font-size: 22px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            color: var(--neon-purple);
+            text-shadow: 0 0 15px rgba(123,47,255,0.5);
+            transition: all 0.3s;
+        }
+
+        input[type=range] {
+            width: 100%;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 6px;
+            background: rgba(128,128,128,0.15);
+            outline: none;
+            cursor: pointer;
+        }
+
+            input[type=range]::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 22px;
+                height: 22px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+                cursor: pointer;
+                box-shadow: 0 0 10px rgba(123,47,255,0.4);
+                transition: all 0.2s;
+            }
+
+                input[type=range]::-webkit-slider-thumb:hover {
+                    transform: scale(1.2);
+                    box-shadow: 0 0 15px rgba(123,47,255,0.6);
+                }
+
+        .density-viz {
+            display: grid;
+            grid-template-columns: repeat(20, 1fr);
+            gap: 2px;
+            height: 28px;
+            margin: 12px 0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .density-cell {
+            border-radius: 2px;
+            transition: background 0.5s ease, transform 0.3s;
+        }
+
+        .ai-insight {
+            background: rgba(123,47,255,0.1);
+            border: 1px solid rgba(123,47,255,0.2);
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            transition: background 0.4s ease;
+        }
+
+        .ai-insight-tag {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--neon-purple);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 6px;
+            font-family: var(--font-emoji);
+        }
+
+        .congestion-meter {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .congestion-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        .congestion-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(128,128,128,0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .congestion-fill {
+            height: 100%;
+            border-radius: 8px;
+            transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.8s;
+        }
+
+        .congestion-pct {
+            font-size: 13px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            min-width: 40px;
+            text-align: right;
+            transition: color 0.5s;
+        }
+
+        .metrics-btn {
+            width: 100%;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 13px;
+            font-family: var(--font-main);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--neon-blue);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            font-family: var(--font-emoji);
+        }
+
+            .metrics-btn:hover {
+                background: rgba(0,212,255,0.06);
+                border-color: rgba(0,212,255,0.3);
+                box-shadow: 0 0 20px rgba(0,212,255,0.1);
+            }
+
+        #metricsSection {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .reliability-section {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: background 0.4s ease;
+        }
+
+        .reliability-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .reliability-title {
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .reliability-value {
+            font-weight: 800;
+            color: var(--neon-green);
+            font-family: var(--font-mono);
+        }
+
+        .reliability-bar {
+            height: 8px;
+            background: rgba(128,128,128,0.15);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 14px;
+        }
+
+        .reliability-fill {
+            height: 100%;
+            width: 71.4%;
+            background: linear-gradient(90deg, var(--neon-green), var(--neon-blue));
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,255,136,0.3);
+        }
+
+        .metrics-mini {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .metric-mini-card {
+            text-align: center;
+            background: rgba(128,128,128,0.05);
+            border-radius: 10px;
+            padding: 10px 6px;
+        }
+
+        .metric-mini-val {
+            font-size: 16px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            color: var(--neon-blue);
+            margin-bottom: 3px;
+        }
+
+        .metric-mini-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+
+        .savings-banner {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: calc(100% - 28px);
+            max-width: 452px;
+            display: none;
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        .savings-inner {
+            background: var(--savings-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(0,255,136,0.25);
+            border-radius: 18px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.3), 0 0 20px rgba(0,255,136,0.08);
+            position: relative;
+            overflow: hidden;
+            transition: background 0.4s ease;
+        }
+
+            .savings-inner::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(0,255,136,0.5), rgba(0,212,255,0.3), transparent);
+            }
+
+        .savings-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: var(--font-emoji);
+        }
+
+        .savings-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, rgba(0,255,136,0.15), rgba(0,212,255,0.1));
+            border: 1px solid rgba(0,255,136,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .savings-text-top {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 2px;
+        }
+
+        .savings-value {
+            font-size: 20px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            color: var(--neon-green);
+            text-shadow: 0 0 10px rgba(0,255,136,0.3);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+            .savings-value.updated {
+                animation: valueFlash 0.5s ease;
+            }
+
+        @keyframes valueFlash {
+            0% {
+                transform: scale(1);
+            }
+
+            40% {
+                transform: scale(1.15);
+                color: var(--neon-cyan);
+                text-shadow: 0 0 20px rgba(0,255,245,0.5);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .savings-right {
+            text-align: right;
+        }
+
+        .savings-co2 {
+            font-size: 12px;
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            margin-bottom: 3px;
+            font-weight: 700;
+        }
+
+        .savings-streak {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: var(--font-emoji);
+        }
+
+            .savings-streak span {
+                font-weight: 600;
+            }
+
+        .info-bar {
+            background: rgba(255,140,0,0.05);
+            border: 1px solid rgba(255,140,0,0.15);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 11.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-family: var(--font-emoji);
+            transition: background 0.4s ease;
+        }
+
+            .info-bar span {
+                color: var(--text-secondary);
+            }
+
+        .oos-box {
+            display: none;
+            margin-top: 18px;
+            background: rgba(225,29,72,0.1);
+            border: 1px solid rgba(225,29,72,0.2);
+            border-radius: 14px;
+            padding: 22px;
+            text-align: center;
+            animation: slideUp 0.4s ease;
+        }
+
+        .oos-icon {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            font-family: var(--font-emoji);
+        }
+
+        .oos-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--neon-red);
+            margin-bottom: 6px;
+        }
+
+        .oos-sub {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(128,128,128,0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="card" style="border-radius: 24px 24px 0 0; border-bottom: none; box-shadow: none; max-width:100%; width:100%; border-bottom-left-radius: 0; border-bottom-right-radius: 0; margin-top: 15px;">
+            <div class="header-strip">
+                <div class="header" style="padding: 0;">
+                    <div class="brand">
+                        <div class="brand-icon">🧠</div>
+                        <div class="brand-text">
+                            <h1>MADsight</h1>
+                            <p>AI Urban Mobility Engine</p>
+                        </div>
+                    </div>
+                    <div class="status-bar">
+                        <div class="live-dot"></div>
+                        <span style="color:var(--neon-green); font-weight:700; margin-right:4px;">LIVE</span>
+                        <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="Light/Dark Mode">☀️</button>
+                    </div>
+                </div>
+                <div class="header-meta" style="margin-top:12px;">
+                    <div class="meta-chip time-chip" id="chipTime">--:--</div>
+                    <div class="meta-chip transit-chip">💳 SivasKart</div>
+                    <div class="meta-chip weather-chip" id="chipWeather">☁️ Fetching weather...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="border-radius: 0 0 24px 24px; padding-top: 10px; max-width:100%; width:100%;">
+            <div class="body" style="padding-top: 5px;">
+
+                <div class="section-title">📍 Select Departure Stop</div>
+                <div class="stops-grid" style="margin-bottom: 18px;">
+                    <button class="stop-btn active" data-val="Main Square" onclick="selectStop(this)">
+                        <div class="stop-icon">🏛️</div>
+                        <div class="stop-name">Main Square</div>
+                    </button>
+                    <button class="stop-btn" data-val="University" onclick="selectStop(this)">
+                        <div class="stop-icon">🎓</div>
+                        <div class="stop-name">University</div>
+                    </button>
+                    <button class="stop-btn" data-val="Terminal" onclick="selectStop(this)">
+                        <div class="stop-icon">🚗</div>
+                        <div class="stop-name">Terminal</div>
+                    </button>
+                    <button class="stop-btn" data-val="Hospital" onclick="selectStop(this)">
+                        <div class="stop-icon">🏥</div>
+                        <div class="stop-name">Hospital</div>
+                    </button>
+                    <button class="stop-btn" data-val="Şirinevler" onclick="selectStop(this)">
+                        <div class="stop-icon">🏘️</div>
+                        <div class="stop-name">Şirinevler</div>
+                    </button>
+                    <button class="stop-btn" data-val="Esentepe" onclick="selectStop(this)">
+                        <div class="stop-icon">🌿</div>
+                        <div class="stop-name">Esentepe</div>
+                    </button>
+                </div>
+
+                <button class="cta-btn" onclick="startAnalysis()" id="analyzeBtn">
+                    <div class="spinner" id="spinner"></div>
+                    <span id="btnText">⚡ Run AI Analysis</span>
+                </button>
+
+                <div class="oos-box" id="oosBox">
+                    <div class="oos-icon">🌙</div>
+                    <div class="oos-title">OUT OF SERVICE</div>
+                    <div class="oos-sub">City buses operate between <b>06:00 – 24:00</b>.<br>Please wait for the service hours.</div>
+                </div>
+
+                <div id="resultsContainer" style="display: none; animation: slideUp 0.4s ease;">
+
+                    <div class="stats-row">
+                        <div class="stat-card">
+                            <div class="stat-value blue" id="statEta">--</div>
+                            <div class="stat-label">Nearest (min)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value orange" id="statDelay">--</div>
+                            <div class="stat-label">Delay (min)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value green" id="statOcc">--%</div>
+                            <div class="stat-label">Occupancy</div>
+                        </div>
+                    </div>
+
+                    <div class="alert" id="delayBox">
+                        <div class="alert-icon">⚠️</div>
+                        <div id="delayText" style="color:var(--delay-text);">Calculating optimal routes...</div>
+                    </div>
+
+                    <div class="co2-card" id="co2Card">
+                        <div class="co2-icon">🌱</div>
+                        <div>
+                            <div class="co2-value" id="statCo2">-- kg</div>
+                            <div class="co2-label">CO₂ Emissions Saved vs. Driving</div>
+                        </div>
+                    </div>
+
+                    <div class="map-container">
+                        <div class="map-bg"></div>
+                        <div class="road" style="top:55px;left:0;right:0;height:18px;"></div>
+                        <div class="road" style="top:120px;left:0;right:0;height:14px;"></div>
+                        <div class="road" style="top:175px;left:0;right:0;height:12px;"></div>
+                        <div class="road" style="left:60px;top:0;bottom:0;width:14px;"></div>
+                        <div class="road" style="left:180px;top:0;bottom:0;width:18px;"></div>
+                        <div class="road" style="left:320px;top:0;bottom:0;width:14px;"></div>
+
+                        <div class="traffic-flow" style="top:60px;left:0;width:80px;background:linear-gradient(90deg,transparent,var(--neon-green),transparent);animation-delay:0s;animation-duration:2.5s;"></div>
+                        <div class="traffic-flow" style="top:65px;left:0;width:60px;background:linear-gradient(90deg,transparent,var(--neon-blue),transparent);animation-delay:0.8s;animation-duration:3s;"></div>
+                        <div class="traffic-flow" style="top:124px;left:0;width:70px;background:linear-gradient(90deg,transparent,var(--neon-orange),transparent);animation-delay:0.3s;animation-duration:2.2s;"></div>
+                        <div class="traffic-flow flow-v" style="left:64px;top:0;background:linear-gradient(180deg,transparent,var(--neon-blue),transparent);animation-delay:0.2s;"></div>
+                        <div class="traffic-flow flow-v" style="left:182px;top:0;background:linear-gradient(180deg,transparent,var(--neon-green),transparent);animation-delay:1s;"></div>
+
+                        <div class="map-node active" style="top:48px;left:54px;"><div class="map-node-dot"></div></div>
+                        <div class="map-label" style="top:35px;left:40px;">Esentepe</div>
+                        <div class="map-node" style="top:113px;left:174px;"><div class="map-node-dot" style="background:var(--neon-orange);box-shadow:none;"></div></div>
+                        <div class="map-label" style="top:100px;left:160px;">Şirinevler</div>
+                        <div class="map-node" style="top:168px;left:314px;"><div class="map-node-dot" style="background:var(--neon-green);box-shadow:none;"></div></div>
+                        <div class="map-label" style="top:155px;left:288px;">Main Square</div>
+                        <div class="map-node" style="top:48px;left:314px;"><div class="map-node-dot" style="background:var(--neon-purple);box-shadow:none;"></div></div>
+                        <div class="map-label" style="top:35px;left:306px;">Terminal</div>
+                        <div class="map-node" style="top:168px;left:54px;"><div class="map-node-dot" style="background:var(--neon-red);box-shadow:none;"></div></div>
+                        <div class="map-label" style="top:155px;left:40px;">Hospital</div>
+                        <div class="map-node" style="top:48px;left:174px;"><div class="map-node-dot" style="background:var(--neon-cyan);box-shadow:none;"></div></div>
+                        <div class="map-label" style="top:35px;left:165px;">University</div>
+
+                        <div class="map-overlay-top">
+                            <div class="map-title">📡 Live Traffic Map</div>
+                            <div class="map-badge">⚡ Real-time</div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel" style="padding: 14px;">
+                        <div class="section-title">🚌 Fleet Status</div>
+                        <div id="routeList"></div>
+                    </div>
+
+                    <div class="whatif-panel">
+                        <div class="whatif-header">
+                            <div class="whatif-title">🔬 What-If Simulation</div>
+                            <div class="ai-badge"><div class="ai-dot"></div> Yandex AI Active</div>
+                        </div>
+                        <div class="slider-section">
+                            <div class="slider-label">
+                                <div class="slider-label-text">Simulated Passenger Routing Load</div>
+                                <div class="slider-value-display" id="sliderVal">40%</div>
+                            </div>
+                            <input type="range" min="0" max="100" value="40" id="trafficSlider" oninput="updateSimulation(this.value)">
+                        </div>
+                        <div class="density-viz" id="densityViz"></div>
+                        <div class="ai-insight" id="aiInsight">
+                            <div class="ai-insight-tag">🤖 Yandex AI Insights</div>
+                            <div id="insightText">If 40% of users select this route, congestion will increase.</div>
+                            <div class="congestion-meter">
+                                <span class="congestion-label">Congestion</span>
+                                <div class="congestion-bar"><div class="congestion-fill" id="congestionFill" style="width:60%;background:linear-gradient(90deg,var(--neon-orange),var(--neon-red));"></div></div>
+                                <span class="congestion-pct" id="congestionPct" style="color:var(--neon-orange);">60%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="metrics-btn" onclick="toggleMetrics()" id="metricsBtnText">📊 Show Model Metrics</button>
+
+                    <div id="metricsSection" style="display:none; animation: slideUp 0.3s ease;">
+                        <div class="reliability-section">
+                            <div class="reliability-header">
+                                <div class="reliability-title">🛡 AI Confidence Score</div>
+                                <div class="reliability-value" id="confPct">71.4%</div>
+                            </div>
+                            <div class="reliability-bar">
+                                <div class="reliability-fill" id="confBar" style="width: 71.4%;"></div>
+                            </div>
+                            <div class="metrics-mini">
+                                <div class="metric-mini-card">
+                                    <div class="metric-mini-val" id="maeVal">0.30</div>
+                                    <div class="metric-mini-label">Est. Error (min)</div>
+                                </div>
+                                <div class="metric-mini-card">
+                                    <div class="metric-mini-val" id="rmseVal">17.94</div>
+                                    <div class="metric-mini-label">Pax / Vehicle (RMSE)</div>
+                                </div>
+                                <div class="metric-mini-card">
+                                    <div class="metric-mini-val" style="font-size:13px;">GBM</div>
+                                    <div class="metric-mini-label">ML Model</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="info-bar" style="margin-top: 12px;">
+                        <span>ℹ️</span>
+                        <span><strong>Disclaimer:</strong> AI predictions utilize real-time traffic models. Actual conditions may vary.</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="savings-banner" id="savingsBanner">
+        <div class="savings-inner">
+            <div class="savings-left">
+                <div class="savings-icon">⏱</div>
+                <div>
+                    <div class="savings-text-top">Saved via AI Optimization</div>
+                    <div class="savings-value" id="savingsValue">12 mins</div>
+                </div>
+            </div>
+            <div class="savings-right">
+                <div class="savings-co2" style="font-weight:700; color:var(--text-primary);">Time Saved! ⚡</div>
+                <div class="savings-streak" id="savingsStreakText"><span style="color:var(--neon-green)">Perfect Flow 🚀</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // FETCH WEATHER DATA ON LOAD
+        async function initWeather() {
+            try {
+                // Fetching Live Weather for Sivas
+                const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=39.74&longitude=37.01&current_weather=true");
+                const wData = await res.json();
+                const temp = wData.current_weather.temperature;
+                const wind = wData.current_weather.windspeed;
+                const code = wData.current_weather.weathercode;
+
+                let label = "Clear"; let icon = "🌤";
+                if (code <= 3) { label = "Cloudy"; icon = "☁️"; }
+                else if (code >= 45 && code <= 48) { label = "Foggy"; icon = "🌫"; }
+                else if (code >= 51 && code <= 67) { label = "Rainy"; icon = "🌧"; }
+                else if (code >= 71 && code <= 86) { label = "Snowy"; icon = "❄️"; }
+                else if (code >= 95) { label = "Stormy"; icon = "⛈"; }
+
+                document.getElementById('chipWeather').innerHTML = `${icon} ${label} &nbsp;|&nbsp; 🌡 ${temp}°C &nbsp;|&nbsp; 💨 ${wind} km/h`;
+            } catch (e) {
+                console.log("Initial weather fetch failed.", e);
+            }
+        }
+
+        // THEME MANAGEMENT
+        function toggleTheme() {
+            const docEl = document.documentElement;
+            const currentTheme = docEl.getAttribute('data-theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            docEl.setAttribute('data-theme', newTheme);
+            localStorage.setItem('madsight-theme', newTheme);
+            document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+
+            const currentVal = document.getElementById('trafficSlider').value;
+            updateSimulation(currentVal);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('madsight-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+
+            const densityViz = document.getElementById('densityViz');
+            for (let i = 0; i < 20; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'density-cell';
+                cell.id = 'dc-' + i;
+                densityViz.appendChild(cell);
+            }
+            updateSimulation(40);
+            initWeather();
+        });
+
+        let selectedStop = "Main Square"; // Default start
+
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('chipTime').textContent = h + ':' + m;
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        function selectStop(btn) {
+            document.querySelectorAll('.stop-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedStop = btn.dataset.val;
+        }
+
+        function toggleMetrics() {
+            const sec = document.getElementById('metricsSection');
+            const btn = document.getElementById('metricsBtnText');
+            if (sec.style.display === 'none' || sec.style.display === '') {
+                sec.style.display = 'block';
+                btn.innerHTML = '📊 Hide Metrics';
+            } else {
+                sec.style.display = 'none';
+                btn.innerHTML = '📊 Show Model Metrics';
+            }
+        }
+
+        function occColor(pct) {
+            if (pct < 50) return 'var(--neon-green)';
+            if (pct < 75) return 'var(--neon-orange)';
+            return 'var(--neon-red)';
+        }
+
+        async function startAnalysis() {
+            const btn = document.getElementById('analyzeBtn');
+            const spinner = document.getElementById('spinner');
+            const btnText = document.getElementById('btnText');
+
+            // Hide the savings banner when a new analysis starts
+            document.getElementById('savingsBanner').style.display = 'none';
+
+            btn.disabled = true;
+            spinner.style.display = 'block';
+            btnText.textContent = '⚡ Analyzing Traffic...';
+
+            try {
+                const resp = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stop: selectedStop })
+                });
+                const data = await resp.json();
+
+                btnText.textContent = '✅ Analysis Complete';
+                btn.style.opacity = '1';
+                btn.style.background = 'linear-gradient(135deg, var(--neon-green), #059669)';
+                setTimeout(() => {
+                    btnText.textContent = '⚡ Run AI Analysis';
+                    btn.style.background = '';
+                }, 2500);
+
+                if (data.status === 'out_of_service') {
+                    document.getElementById('oosBox').style.display = 'block';
+                    document.getElementById('resultsContainer').style.display = 'none';
+                    return; // Banner stays hidden
+                }
+
+                if (data.status !== 'ok') {
+                    alert('Error: ' + (data.message || 'Unknown error'));
+                    return; // Banner stays hidden
+                }
+
+                document.getElementById('oosBox').style.display = 'none';
+
+                let wIcon = "🌤";
+                if (data.live_w.includes("Cloudy")) wIcon = "☁️";
+                if (data.live_w.includes("Rain")) wIcon = "🌧";
+                if (data.live_w.includes("Snow")) wIcon = "❄️";
+                if (data.live_w.includes("Fog")) wIcon = "🌫";
+
+                // Update Unified Weather Chip from Python Response
+                document.getElementById('chipWeather').innerHTML = `${wIcon} ${data.live_w} &nbsp;|&nbsp; 🌡 ${data.live_temp}°C &nbsp;|&nbsp; 💨 ${data.live_wind} km/h`;
+
+                document.getElementById('statEta').textContent = data.best_eta;
+                document.getElementById('statDelay').textContent = data.best_delay > 0 ? `+${data.best_delay}` : data.best_delay;
+                document.getElementById('statOcc').textContent = `${data.best_occ}%`;
+
+                // Update CO2 Value
+                if (data.co2_saved_kg) {
+                    document.getElementById('statCo2').textContent = data.co2_saved_kg + ' kg';
+                }
+
+                const hasDelay = data.best_delay > 0;
+                const delayBox = document.getElementById('delayBox');
+                if (hasDelay) {
+                    delayBox.style.display = 'flex';
+                    document.getElementById('delayText').innerHTML = `<b style="color:var(--delay-bold)">Delay Reason:</b> <span style="color:var(--delay-text)">${data.delay_reason}. Est. delay <b>+${data.best_delay} min</b>.</span>`;
+                } else {
+                    delayBox.style.display = 'none';
+                }
+
+                let html = '';
+                data.routes.forEach((r) => {
+                    const isBest = r.name === data.best;
+                    const oc = r.occ_pct;
+                    const col = occColor(oc);
+                    html += `
+                        <div class="route-card ${isBest ? 'best' : ''}">
+                            <div class="route-header">
+                                <div class="route-name">${r.name}</div>
+                                ${isBest ? '<span class="route-badge best-badge">⭐ Best Route</span>' : ''}
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-stat"><span class="label">ETA</span><span class="val blue">${r.eta_min} min</span></div>
+                                <div class="route-stat"><span class="label">⚡ Delay</span><span class="val orange" style="color:${r.delay_min > 2 ? 'var(--neon-orange)' : 'var(--neon-blue)'}">${r.delay_min > 0 ? '+' + r.delay_min + ' min' : 'None'}</span></div>
+                                <div class="route-stat"><span class="label">👥 Waiting</span><span class="val purple" style="color:var(--neon-purple)">${r.waiting_passengers}</span></div>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width:${oc}%; background:${col};"></div>
+                            </div>
+                            <div class="route-footer">
+                                <span>Occupancy: ${oc}%</span>
+                            </div>
+                        </div>`;
+                });
+
+                const routeListDiv = document.getElementById('routeList');
+                if (routeListDiv) {
+                    routeListDiv.innerHTML = html;
+                }
+
+                document.getElementById('confPct').textContent = data.confidence + '%';
+                document.getElementById('confBar').style.width = data.confidence + '%';
+                document.getElementById('maeVal').textContent = data.delay_mae;
+                document.getElementById('rmseVal').textContent = data.crowd_rmse;
+
+                document.getElementById('resultsContainer').style.display = 'block';
+                updateSimulation(40);
+
+                // Show the savings banner only after a successful analysis
+                document.getElementById('savingsBanner').style.display = 'block';
+
+            } catch (e) {
+                alert('Server connection error! Please ensure the Python application is running.');
+                btnText.textContent = '⚡ Run AI Analysis';
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+            }
+        }
+
+        function updateSimulation(val) {
+            val = parseInt(val);
+            document.getElementById('sliderVal').textContent = val + '%';
+
+            const congestion = Math.min(100, Math.round(val * 1.5));
+            document.getElementById('congestionFill').style.width = congestion + '%';
+            document.getElementById('congestionPct').textContent = congestion + '%';
+
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+            let fillColor, textColor;
+            if (congestion < 30) {
+                fillColor = isLight ? 'linear-gradient(90deg, #16a34a, #0891b2)' : 'linear-gradient(90deg, #00ff88, #00d4ff)';
+                textColor = isLight ? '#16a34a' : '#00ff88';
+            } else if (congestion < 60) {
+                fillColor = isLight ? 'linear-gradient(90deg, #ea580c, #dc2626)' : 'linear-gradient(90deg, var(--neon-orange), #ff6000)';
+                textColor = isLight ? '#ea580c' : 'var(--neon-orange)';
+            } else {
+                fillColor = isLight ? 'linear-gradient(90deg, #e11d48, #be123c)' : 'linear-gradient(90deg, #ff4060, #ff0040)';
+                textColor = isLight ? '#e11d48' : '#ff3060';
+            }
+
+            document.getElementById('congestionFill').style.background = fillColor;
+            document.getElementById('congestionPct').style.color = textColor;
+
+            const threshold = Math.round(val / 5);
+            for (let i = 0; i < 20; i++) {
+                const cell = document.getElementById('dc-' + i);
+                if (!cell) continue;
+
+                let bg;
+                if (i < threshold - 3) bg = isLight ? 'rgba(225,29,72,0.8)' : 'rgba(255,48,96,0.75)';
+                else if (i < threshold) bg = isLight ? 'rgba(234,88,12,0.7)' : 'rgba(255,140,0,0.6)';
+                else if (i < threshold + 2) bg = isLight ? 'rgba(234,179,8,0.5)' : 'rgba(255,200,0,0.5)';
+                else bg = isLight ? '#e2e8f0' : 'rgba(255,255,255,0.06)';
+                cell.style.background = bg;
+            }
+
+            const flowsH = document.querySelectorAll('.traffic-flow:not(.flow-v)');
+            const flowsV = document.querySelectorAll('.traffic-flow.flow-v');
+            let baseSpeed = 1.5 + (val / 25);
+
+            flowsH.forEach((f, i) => {
+                f.style.background = `linear-gradient(90deg, transparent, ${textColor}, transparent)`;
+                f.style.animationDuration = (baseSpeed + i * 0.3) + 's';
+            });
+            flowsV.forEach((f, i) => {
+                f.style.background = `linear-gradient(180deg, transparent, ${textColor}, transparent)`;
+                f.style.animationDuration = (baseSpeed + i * 0.4) + 's';
+            });
+
+            let insight;
+            if (val === 0) insight = 'If no users select this route, traffic is <strong>completely free-flowing</strong>. Optimal performance.';
+            else if (val < 20) insight = `At <strong>${val}%</strong> simulated load, traffic flow is <strong>normal</strong>. No rerouting needed.`;
+            else if (val < 40) insight = `At <strong>${val}%</strong> load, congestion increases to <strong>${congestion}%</strong>. Minor travel time delays.`;
+            else if (val < 60) insight = `At <strong>${val}%</strong> load, congestion hits <strong>${congestion}%</strong>. Suggesting alternative routes.`;
+            else if (val < 80) insight = `⚠️ Critical! <strong>${val}%</strong> load causes <strong>${congestion}%</strong> congestion. Requesting additional fleet dispatch.`;
+            else insight = `🚨 Overload! At <strong>${val}%</strong> load, system is at <strong>${congestion}% capacity</strong>. Emergency rerouting advised.`;
+            document.getElementById('insightText').innerHTML = insight;
+
+            const savedMins = Math.max(2, 20 - Math.round(val * 0.18));
+            const savEl = document.getElementById('savingsValue');
+            savEl.classList.remove('updated');
+            void savEl.offsetWidth;
+            savEl.textContent = savedMins + ' mins';
+            savEl.classList.add('updated');
+
+            const streakText = document.getElementById('savingsStreakText');
+            if (savedMins >= 15) {
+                streakText.innerHTML = `<span style='color:${isLight ? '#16a34a' : 'var(--neon-green)'}'>Perfect Flow 🚀</span>`;
+            } else if (savedMins >= 8) {
+                streakText.innerHTML = `<span style='color:${isLight ? '#ea580c' : 'var(--neon-orange)'}'>Minor Delays 🚗</span>`;
+            } else {
+                streakText.innerHTML = `<span style='color:${isLight ? '#e11d48' : 'var(--neon-red)'}'>Heavy Traffic 🛑</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
